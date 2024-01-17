@@ -5,8 +5,10 @@ import "./styles/App.css";
 import twitterLogo from "./assets/twitter-logo.svg";
 import myEpicNft from "./utils/MyEpicNFT.json";
 // Constantsを宣言する: constとは値書き換えを禁止した変数を宣言する方法です。
-const TWITTER_HANDLE = "あなたのTwitterのハンドルネームを貼り付けてください";
+const TWITTER_HANDLE = "lycp152";
 const TWITTER_LINK = `https://twitter.com/${TWITTER_HANDLE}`;
+// コトントラクトアドレスをCONTRACT_ADDRESS変数に格納
+const CONTRACT_ADDRESS = "0x62c703be06726149dfad48acecfb94439f59c061";
 
 const App = () => {
   /*
@@ -37,6 +39,10 @@ const App = () => {
       const account = accounts[0];
       console.log("Found an authorized account:", account);
       setCurrentAccount(account);
+
+      // **** イベントリスナーをここで設定 ****
+      // この時点で、ユーザーはウォレット接続が済んでいます。
+      setupEventListener();
     } else {
       console.log("No authorized account found");
     }
@@ -52,24 +58,54 @@ const App = () => {
         alert("Get MetaMask!");
         return;
       }
-      /*
-       * ウォレットアドレスに対してアクセスをリクエストしています。
-       */
+      // ウォレットアドレスに対してアクセスをリクエストしています。
       const accounts = await ethereum.request({
         method: "eth_requestAccounts",
       });
+
       console.log("Connected", accounts[0]);
-      /*
-       * ウォレットアドレスを currentAccount に紐付けます。
-       */
+
+      // ウォレットアドレスを currentAccount に紐付けます。
       setCurrentAccount(accounts[0]);
+
+      // **** イベントリスナーをここで設定 ****
+      setupEventListener();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // MyEpicNFT.sol の中で event が　emit された時に、
+  // 情報を受け取ります。
+  const setupEventListener = async () => {
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        // NFT が発行されます。
+        const connectedContract = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          myEpicNft.abi,
+          signer
+        );
+        // Event が　emit される際に、コントラクトから送信される情報を受け取っています。
+        connectedContract.on("NewEpicNFTMinted", (from, tokenId) => {
+          console.log(from, tokenId.toNumber());
+          alert(
+            `あなたのウォレットに NFT を送信しました。gemcase に表示されるまで数分かかることがあります。NFT へのリンクはこちらです: https://gemcase.vercel.app/view/evm/sepolia/${CONTRACT_ADDRESS}/${tokenId.toNumber()}`
+          );
+        });
+        console.log("Setup event listener!");
+      } else {
+        console.log("Ethereum object doesn't exist!");
+      }
     } catch (error) {
       console.log(error);
     }
   };
 
   const askContractToMintNft = async () => {
-    const CONTRACT_ADDRESS = "0xe2Cd86e721E7595bc9c8D0A461049b4b338465c1";
     try {
       const { ethereum } = window;
       if (ethereum) {

@@ -132,4 +132,14 @@ describe("MyEpicNFT", function () {
       expect(thirdWords).to.include(await MyEpicNFT.pickRandomThirdWord(0));
     });
   });
+
+  describe("makeAnEpicNFT", function () {
+    it("emit a NewEpicNFTMinted event", async function () {
+      const { MyEpicNFT, owner } = await loadFixture(deployMyEpicNFTFixture);
+
+      await expect(MyEpicNFT.makeAnEpicNFT())
+        .to.emit(MyEpicNFT, "NewEpicNFTMinted")
+        .withArgs(owner.address, 1);
+    });
+  });
 });
